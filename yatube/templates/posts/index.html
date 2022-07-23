@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load thumbnail %}
+{% block title %} Последнее обновление на сайте {% endblock %}
+{% block content %}
+{% include 'posts/includes/switcher.html' %}
+  <style>
+    .img-container {
+      text-align: center;
+      display: block;
+    }
+  </style>
+  <div class="container py-5">
+    <h1>Последнее обновление на сайте</h1>
+    {% for post in page_obj %}
+      <ul>
+        <li>
+          Автор: <font color="red">{{ post.author.get_full_name }}</font> <a href="{% url 'posts:profile' post.author.username %}">все посты пользователя</a>
+        </li>
+        <li>
+          Дата публикации: {{ post.pub_date|date:"d E Y" }}
+        </li>
+      </ul>
+      {% thumbnail post.image "960x550" crop="center" upscale=True as im %}
+        <span class="img-container">
+          <img class="card-img my-2" src="{{ im.url }}" style="width: 650px; height: 370px">
+        </span>
+      {% endthumbnail %}      
+      <p style="width: 600px; word-wrap: break-word">
+        {{ post.text }}
+      </p>
+      <a href="{% url 'posts:post_detail' post.id %}">подробная информация </a><br>
+      {% if post.group %}
+        <a href="{% url 'posts:group_list' post.group.slug %}">все записи группы: </a><font color="purple">{{ post.group }}</font>
+      {% endif %}
+      {% if not forloop.last %}<hr>{% endif %}
+    {% endfor %}
+    {% include 'posts/includes/paginator.html' %} 
+  </div>
+{% endblock %}
