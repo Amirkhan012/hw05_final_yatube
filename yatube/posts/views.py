@@ -42,9 +42,9 @@ def profile(request, username):
     user = request.user
     author = get_object_or_404(User, username=username)
     following = (
-        user.is_authenticated and
-        user != author and
-        Follow.objects.filter(
+        user.is_authenticated
+        and user != author
+        and Follow.objects.filter(
             author=author).filter(user=user).exists()
     )
     post_list = author.posts.all()
