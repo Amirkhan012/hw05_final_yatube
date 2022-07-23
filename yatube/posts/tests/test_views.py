@@ -5,7 +5,7 @@ from django.urls import reverse
 from django import forms
 
 from posts.models import Post, Group
-from posts.views import PAGINATE_BY
+from posts.utils import PAGINATE_BY
 
 
 User = get_user_model()
@@ -251,21 +251,31 @@ class ViewTests(TestCase):
 
     def test_user_follow(self):
         """Проверка авторизованного пользователя
-        на возможность подписаться и удаление подписки."""
+        на возможность подписаться."""
         follower_count = ViewTests.user_2.follower.count()
-        following_count = ViewTests.user.follower.count()
+        following_count = ViewTests.user.following.count()
         self.authorized_client_2.get(reverse(
             'posts:profile_follow',
             kwargs={'username': ViewTests.user})
         )
         self.assertEqual(ViewTests.user_2.follower.count(), follower_count + 1)
         self.assertEqual(ViewTests.user.following.count(), following_count + 1)
+
+    def test_user_unfollow(self):
+        """Проверка авторизованного пользователя
+        на возможность удаление подписки."""
+        self.authorized_client_2.get(reverse(
+            'posts:profile_follow',
+            kwargs={'username': ViewTests.user})
+        )
+        follower_count = ViewTests.user_2.follower.count()
+        following_count = ViewTests.user.following.count()
         self.authorized_client_2.get(reverse(
             'posts:profile_unfollow',
             kwargs={'username': ViewTests.user})
         )
-        self.assertEqual(ViewTests.user_2.follower.count(), follower_count)
-        self.assertEqual(ViewTests.user.following.count(), following_count)
+        self.assertEqual(ViewTests.user_2.follower.count(), follower_count - 1)
+        self.assertEqual(ViewTests.user.following.count(), following_count - 1)
 
     def test_guest_follow(self):
         """Проверка неавторизованного пользователя

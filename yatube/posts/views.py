@@ -1,5 +1,4 @@
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -8,16 +7,15 @@ from django.views.decorators.cache import cache_page
 from .models import Follow, User
 from .models import Group, Post
 from .forms import PostForm, CommentForm
+from posts.utils import paginate
 
 PAGINATE_BY = 10
 
 
 @cache_page(20, cache='default', key_prefix='index_page')
 def index(request):
-    post_list = Post.objects.all()
-    paginator = Paginator(post_list, PAGINATE_BY)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    post_list = Post.objects.select_related('author', 'group')
+    page_obj = paginate(request, post_list)
     context = {
         'index': True,
         'page_obj': page_obj,
@@ -28,9 +26,7 @@ def index(request):
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
     post_list = group.posts.all()
-    paginator = Paginator(post_list, PAGINATE_BY)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginate(request, post_list)
     context = {
         'group': group,
         'page_obj': page_obj,
@@ -49,9 +45,7 @@ def profile(request, username):
     )
     post_list = author.posts.all()
     count = author.posts.all().count()
-    paginator = Paginator(post_list, PAGINATE_BY)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginate(request, post_list)
     context = {
         'author': author,
         'following': following,
@@ -129,12 +123,10 @@ def add_comment(request, post_id):
 
 @login_required
 def follow_index(request):
-    posts_list = Post.objects.filter(
+    post_list = Post.objects.filter(
         author__following__user=request.user
     )
-    paginator = Paginator(posts_list, PAGINATE_BY)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginate(request, post_list)
     context = {
         'follow': True,
         'page_obj': page_obj,
@@ -147,9 +139,8 @@ def profile_follow(request, username):
     user = request.user
     author = get_object_or_404(User, username=username)
     if user.is_authenticated:
-        if user != author and not Follow.objects.filter(
-                author=author).filter(user=user).exists():
-            Follow.objects.create(
+        if user != author:
+            Follow.objects.get_or_create(
                 user=user,
                 author=author,
             )
